@@ -355,4 +355,40 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     callback1.assertFulfilled(expected1);
     callback2.assertRejected(expected2);
   }
+
+  @Test
+  public void testManyCallbacksFulfilled() {
+    Object expected = new Object();
+    P promise = createFulfilledPromise(expected);
+    TestLeafCallback before = new TestLeafCallback();
+    TestLeafCallback after1 = new TestLeafCallback();
+    TestLeafCallback after2 = new TestLeafCallback();
+
+    promise.then(before);
+    fulfill(promise, expected);
+    promise.then(after1);
+    promise.then(after2);
+
+    before.assertFulfilled(expected);
+    after1.assertFulfilled(expected);
+    after2.assertFulfilled(expected);
+  }
+
+  @Test
+  public void testManyCallbacksRejected() {
+    Throwable expected = new ClassCastException("foo");
+    P promise = createRejectedPromise(expected);
+    TestLeafCallback before = new TestLeafCallback();
+    TestLeafCallback after1 = new TestLeafCallback();
+    TestLeafCallback after2 = new TestLeafCallback();
+
+    promise.then(before);
+    reject(promise, expected);
+    promise.then(after1);
+    promise.then(after2);
+
+    before.assertRejected(expected);
+    after1.assertRejected(expected);
+    after2.assertRejected(expected);
+  }
 }

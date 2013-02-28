@@ -16,53 +16,50 @@ public class FulfillablePromise<V> implements Promise<V> {
     REJECTED,
   }
 
+  private static abstract class Handler<V> {
+    Handler<V> next;
+
+    abstract void fulfill(V value);
+
+    abstract void reject(Throwable reason);
+  }
+
   private State state = State.PENDING;
   private V value;
   private Throwable reason;
 
-  private ChainingCallback<? super V,Object> callback;
-  private FulfillablePromise<Object> next;
+  private Handler<V> first;
+  private Handler<V> last;
 
   public synchronized void fulfill(@Nullable V value) {
-    assert state == State.PENDING;
+    if (state != State.PENDING) {
+      throw new IllegalStateException();
+    }
 
     state = State.FULFILLED;
     this.value = value;
 
-    if (callback != null) {
-      if (next == null) {
-        callback.onFulfilled(value);
-      } else {
-        try {
-          chain(callback.onFulfilled(value), next);
-        } catch (Throwable t) {
-          next.reject(t);
-        }
-      }
+    for (Handler<V> handler = first; handler != null; handler = handler.next) {
+      handler.fulfill(value);
     }
+    first = last = null;
   }
 
   public synchronized void reject(Throwable reason) {
-    assert state == State.PENDING;
+    if (state != State.PENDING) {
+      throw new IllegalStateException();
+    }
 
     state = State.REJECTED;
     this.reason = reason;
 
-    if (callback != null) {
-      if (next == null) {
-        callback.onRejected(reason);
-      } else {
-        try {
-          chain(callback.onRejected(reason), next);
-        } catch (Throwable t) {
-          next.reject(t);
-        }
-      }
+    for (Handler<V> handler = first; handler != null; handler = handler.next) {
+      handler.reject(reason);
     }
+    first = last = null;
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public synchronized <R> Promise<R> then(final ChainingCallback<? super V, R> callback) {
     switch (state) {
     case FULFILLED:
@@ -79,9 +76,42 @@ public class FulfillablePromise<V> implements Promise<V> {
       }
     case PENDING:
     default:
-      this.callback = (ChainingCallback<? super V, Object>) requireNonNull(callback);
-      next = new FulfillablePromise<>();
-      return (Promise<R>) next;
+      requireNonNull(callback);
+      final FulfillablePromise<R> promise = new FulfillablePromise<>();
+      addHandler(new Handler<V>() {
+        @Override
+        void fulfill(V value) {
+          try {
+            chain(callback.onFulfilled(value), promise);
+          } catch (Throwable t) {
+            promise.reject(t);
+          }
+        }
+
+        @Override
+        void reject(Throwable reason) {
+          try {
+            chain(callback.onRejected(reason), promise);
+          } catch (Throwable t) {
+            promise.reject(t);
+          }
+        }
+
+        private void chain(Promise<R> promise, final FulfillablePromise<R> into) {
+          promise.then(new LeafCallback<R>() {
+            @Override
+            public void onFulfilled(R value) {
+              into.fulfill(value);
+            }
+
+            @Override
+            public void onRejected(Throwable reason) {
+              into.reject(reason);
+            }
+          });
+        }
+      });
+      return promise;
     }
   }
 
@@ -96,39 +126,26 @@ public class FulfillablePromise<V> implements Promise<V> {
         break;
     case PENDING:
     default:
-      this.callback = (ChainingCallback<? super V, Object>) wrap(callback);
+      requireNonNull(callback);
+      addHandler(new Handler<V>() {
+        @Override
+        void fulfill(V value) {
+          callback.onFulfilled(value);
+        }
+
+        @Override
+        void reject(Throwable reason) {
+          callback.onRejected(reason);
+        }
+      });
     }
   }
 
-  private static <V> void chain(Promise<V> promise, @Nullable final FulfillablePromise<V> into) {
-    if (into == null) {
-      return;
+  private void addHandler(Handler<V> handler) {
+    if (last == null) {
+      first = last = handler;
+    } else {
+      last = last.next = handler;
     }
-    promise.then(new LeafCallback<V>() {
-      @Override
-      public void onFulfilled(V value) {
-        into.fulfill(value);
-      }
-
-      @Override
-      public void onRejected(Throwable reason) {
-        into.reject(reason);
-      }
-    });
-  }
-
-  private ChainingCallback<V, Object> wrap(final LeafCallback<? super V> callback) {
-    return new ChainingCallback<V, Object>() {
-      @Override
-      public Promise<Object> onFulfilled(V value) {
-        callback.onFulfilled(value);
-        return null;
-      }
-      @Override
-      public Promise<Object> onRejected(Throwable reason) {
-        callback.onRejected(reason);
-        return null;
-      }
-    };
   }
 }

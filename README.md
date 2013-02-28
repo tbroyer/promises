@@ -9,10 +9,7 @@ From that proposal:
 
 The goal is to simplify asynchronous flows, avoiding the so-called _Callback Pyramid of Doom_.
 
-The major differences, besides strong type-checking brought/enforced by Java, are that:
-
- * the `then` method should be called only once per promise (at least for the time being, and even though it's not strictly enforced)
- * the `then` method is not asynchronous: if the promise is already fulfilled or rejected, the callbacks will be called synchronously, before the method returns.
+The major difference, besides strong type-checking brought/enforced by Java, is that the `then` method is not asynchronous: if the promise is already fulfilled or rejected, the callbacks will be called synchronously, before the method returns.
 
 The implementation is inspired by [Guava](http://code.google.com/p/guava-libraries/)'s
 `Optional` and `SettableFuture`, and includes a `FuturePromise` as a two-way bridge with Guava's `ListenableFuture`. The dependency on Guava is optional though (but then you won't bridge with futures).

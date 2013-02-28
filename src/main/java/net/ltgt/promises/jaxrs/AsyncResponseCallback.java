@@ -1,4 +1,4 @@
-package net.ltgt.promises.rs.container;
+package net.ltgt.promises.jaxrs;
 
 import java.util.Objects;
 

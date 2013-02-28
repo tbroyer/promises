@@ -1,4 +1,4 @@
-package net.ltgt.promises.rs.client;
+package net.ltgt.promises.jaxrs;
 
 import javax.ws.rs.client.InvocationCallback;
 import javax.ws.rs.core.GenericType;

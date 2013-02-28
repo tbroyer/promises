@@ -95,6 +95,31 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
   }
 
   @Override
+  public <R> FuturePromise<R> then(final ChainingImmediateCallback<? super V, R> callback) {
+    final SettableFuture<R> ret = SettableFuture.create();
+    then(new FutureCallback<V>() {
+      @Override
+      public void onSuccess(V result) {
+        try {
+          ret.set(callback.onFulfilled(result));
+        } catch (Throwable t) {
+          ret.setException(t);
+        }
+      }
+
+      @Override
+      public void onFailure(Throwable t) {
+        try {
+          ret.set(callback.onRejected(t));
+        } catch (Throwable t2) {
+          ret.setException(t2);
+        }
+      }
+    });
+    return new FuturePromise<>(ret);
+  }
+
+  @Override
   public void then(final LeafCallback<? super V> callback) {
     then(new FutureCallback<V>() {
       @Override

@@ -22,6 +22,14 @@ public final class Promises {
         }
       }
       @Override
+      public <R> Promise<R> then(ChainingImmediateCallback<? super V, R> callback) {
+        try {
+          return fulfilled(callback.onFulfilled(value));
+        } catch (Throwable t) {
+          return rejected(t);
+        }
+      }
+      @Override
       public void then(LeafCallback<? super V> callback) {
         callback.onFulfilled(value);
       }
@@ -38,7 +46,14 @@ public final class Promises {
           return rejected(t);
         }
       }
-
+      @Override
+      public <R> Promise<R> then(ChainingImmediateCallback<? super V, R> callback) {
+        try {
+          return fulfilled(callback.onRejected(reason));
+        } catch (Throwable t) {
+          return rejected(t);
+        }
+      }
       @Override
       public void then(LeafCallback<? super V> callback) {
         callback.onRejected(reason);

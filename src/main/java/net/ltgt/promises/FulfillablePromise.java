@@ -116,6 +116,48 @@ public class FulfillablePromise<V> implements Promise<V> {
   }
 
   @Override
+  public <R> Promise<R> then(final ChainingImmediateCallback<? super V, R> callback) {
+    switch (state) {
+    case FULFILLED:
+      try {
+        return Promises.fulfilled(callback.onFulfilled(value));
+      } catch (Throwable t) {
+        return Promises.rejected(t);
+      }
+    case REJECTED:
+      try {
+        return Promises.fulfilled(callback.onRejected(reason));
+      } catch (Throwable t) {
+        return Promises.rejected(t);
+      }
+    case PENDING:
+    default:
+      requireNonNull(callback);
+      final FulfillablePromise<R> promise = new FulfillablePromise<>();
+      addHandler(new Handler<V>() {
+        @Override
+        void fulfill(V value) {
+          try {
+            promise.fulfill(callback.onFulfilled(value));
+          } catch (Throwable t) {
+            promise.reject(t);
+          }
+        }
+
+        @Override
+        void reject(Throwable reason) {
+          try {
+            promise.fulfill(callback.onRejected(reason));
+          } catch (Throwable t) {
+            promise.reject(t);
+          }
+        }
+      });
+      return promise;
+    }
+  }
+
+  @Override
   public synchronized void then(final LeafCallback<? super V> callback) {
     switch (state) {
     case FULFILLED:

@@ -8,12 +8,17 @@ import net.ltgt.promises.Promises;
 public class PrefilledPromiseTest extends PromiseTestBase<Promise<Object>> {
 
   @Override
-  void assertPending(TestLeafCallback callback) {
+  void assertPending(TestChainingCallback callback) {
     // no-op
   }
 
   @Override
-  void assertPending(TestChainingCallback callback) {
+  void assertPending(TestChainingImmediateCallback callback) {
+    // no-op
+  }
+
+  @Override
+  void assertPending(TestLeafCallback callback) {
     // no-op
   }
 

@@ -23,19 +23,19 @@ import javax.annotation.Nullable;
  */
 public interface Promise<V> {
 
-  /**
-   * A callback for chaining promises.
-   * <p>
-   * When a promise is fulfilled or rejected
-   *
-   * @param <V> type of the fulfilled value
-   * @param <R> type of the promised value
-   */
   abstract class ChainingCallback<V, R> {
     public abstract Promise<R> onFulfilled(@Nullable V value);
 
     public Promise<R> onRejected(Throwable reason) {
       return Promises.rejected(reason);
+    }
+  }
+
+  abstract class ChainingImmediateCallback<V, R> {
+    public abstract R onFulfilled(@Nullable V value) throws Throwable;
+
+    public R onRejected(Throwable reason) throws Throwable {
+      throw reason;
     }
   }
 
@@ -54,6 +54,8 @@ public interface Promise<V> {
   }
 
   <R> Promise<R> then(ChainingCallback<? super V, R> callback);
+
+  <R> Promise<R> then(ChainingImmediateCallback<? super V, R> callback);
 
   void then(LeafCallback<? super V> callback);
 }

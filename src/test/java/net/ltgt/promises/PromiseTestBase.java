@@ -1,11 +1,12 @@
 package net.ltgt.promises;
 
-import static org.fest.assertions.api.Assertions.assertThat;
+import static org.fest.assertions.api.Assertions.*;
 
 import javax.annotation.Nullable;
 
 import net.ltgt.promises.Promise;
 import net.ltgt.promises.Promise.ChainingCallback;
+import net.ltgt.promises.Promise.ChainingImmediateCallback;
 import net.ltgt.promises.Promise.LeafCallback;
 
 import org.junit.Test;
@@ -56,6 +57,52 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
       assertThat(actualValue).as("fulfilled value").isSameAs(expectedValue);
     }
   
+    void assertRejected(Throwable expectedReason) {
+      assertThat(actualValueSet).as("Promise unexpectedly fulfilled").isFalse();
+      assertThat(actualReason).as("rejection reason").isNotNull().isSameAs(expectedReason);
+    }
+  }
+
+  static class TestChainingImmediateCallback extends ChainingImmediateCallback<Object, Object> {
+    private boolean actualValueSet;
+    private Object actualValue;
+    private Throwable actualReason;
+
+    @Override
+    public final Object onFulfilled(@Nullable Object value) throws Throwable {
+      assertThat(actualValueSet).as("onFulfilled must not be called more than once").isFalse();
+      actualValueSet = true;
+      actualValue = value;
+      return doOnFulfilled(value);
+    }
+
+    protected Object doOnFulfilled(Object value) throws Throwable {
+      fail("Promise unexpectedly fulfilled");
+      return null;
+    }
+
+    @Override
+    public final Object onRejected(Throwable reason) throws Throwable {
+      assertThat(actualReason).as("onRejected must not be called more than once").isNull();
+      actualReason = reason;
+      return doOnRejected(reason);
+    }
+
+    protected Object doOnRejected(Throwable reason) throws Throwable {
+      return super.onRejected(reason);
+    }
+
+    void assertPending() {
+      assertThat(actualValueSet).as("Promise unexpectedly fulfilled").isFalse();
+      assertThat(actualReason).as("Promise unexpectedly rejected").isNull();
+    }
+
+    void assertFulfilled(@Nullable Object expectedValue) {
+      assertThat(actualReason).as("Promise unexpectedly rejected").isNull();
+      assertThat(actualValueSet).as("onFulfilled called").isTrue();
+      assertThat(actualValue).as("fulfilled value").isSameAs(expectedValue);
+    }
+
     void assertRejected(Throwable expectedReason) {
       assertThat(actualValueSet).as("Promise unexpectedly fulfilled").isFalse();
       assertThat(actualReason).as("rejection reason").isNotNull().isSameAs(expectedReason);
@@ -114,12 +161,17 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   protected abstract void reject(P promise, Throwable reason);
 
   /** This is a hook for PrefilledPromiseTest. */
-  void assertPending(TestLeafCallback callback) {
+  void assertPending(TestChainingCallback callback) {
     callback.assertPending();
   }
 
   /** This is a hook for PrefilledPromiseTest. */
-  void assertPending(TestChainingCallback callback) {
+  void assertPending(TestChainingImmediateCallback callback) {
+    callback.assertPending();
+  }
+
+  /** This is a hook for PrefilledPromiseTest. */
+  void assertPending(TestLeafCallback callback) {
     callback.assertPending();
   }
 
@@ -350,6 +402,207 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     fulfill(promise1, expected1);
     reject(promise2, expected2);
     
+    promise1.then(callback1).then(callback2);
+
+    callback1.assertFulfilled(expected1);
+    callback2.assertRejected(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateFulfilled() {
+    Object expected1 = new Object();
+    final Object expected2 = new Object();
+    P promise1 = createFulfilledPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      protected Object doOnFulfilled(Object value) throws Throwable {
+        return expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    promise1.then(callback1).then(callback2);
+    assertPending(callback1);
+    assertPending(callback2);
+
+    fulfill(promise1, expected1);
+    callback1.assertFulfilled(expected1);
+    callback2.assertFulfilled(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateRejected() {
+    Throwable expected1 = new ClassCastException("foo");
+    final Throwable expected2 = new IllegalArgumentException("bar");
+    P promise1 = createRejectedPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      @Override
+      protected Object doOnRejected(Throwable reason) throws Throwable {
+        throw expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    promise1.then(callback1).then(callback2);
+    assertPending(callback1);
+    assertPending(callback2);
+
+    reject(promise1, expected1);
+    callback1.assertRejected(expected1);
+    callback2.assertRejected(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateRejectedChained() {
+    Throwable expected1 = new ClassCastException("foo");
+    P promise1 = createRejectedPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback();
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    promise1.then(callback1).then(callback2);
+    assertPending(callback1);
+    assertPending(callback2);
+
+    reject(promise1, expected1);
+    callback1.assertRejected(expected1);
+    callback2.assertRejected(expected1);
+  }
+
+  @Test
+  public void testChainingImmediateRejectedFulfilled() {
+    Throwable expected1 = new ClassCastException("foo");
+    final Object expected2 = new Object();
+    P promise1 = createRejectedPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      protected Object doOnRejected(Throwable reason) throws Throwable {
+        return expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    promise1.then(callback1).then(callback2);
+    assertPending(callback1);
+    assertPending(callback2);
+
+    reject(promise1, expected1);
+    callback1.assertRejected(expected1);
+    callback2.assertFulfilled(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateFulfilledRejected() {
+    Object expected1 = new Object();
+    final Throwable expected2 = new ClassCastException("foo");
+    P promise1 = createFulfilledPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      @Override
+      protected Object doOnFulfilled(Object value) throws Throwable {
+        throw expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    promise1.then(callback1).then(callback2);
+    assertPending(callback1);
+    assertPending(callback2);
+
+    fulfill(promise1, expected1);
+    callback1.assertFulfilled(expected1);
+    callback2.assertRejected(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateAlreadyFulfilled() {
+    Object expected1 = new Object();
+    final Object expected2 = new Object();
+    P promise1 = createFulfilledPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      @Override
+      protected Object doOnFulfilled(Object value) throws Throwable {
+        return expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    fulfill(promise1, expected1);
+
+    promise1.then(callback1).then(callback2);
+
+    callback1.assertFulfilled(expected1);
+    callback2.assertFulfilled(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateAlreadyRejected() {
+    Throwable expected1 = new ClassCastException("foo");
+    final Throwable expected2 = new IllegalArgumentException("bar");
+    P promise1 = createRejectedPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      @Override
+      protected Object doOnRejected(Throwable reason) throws Throwable {
+        throw expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    reject(promise1, expected1);
+
+    promise1.then(callback1).then(callback2);
+
+    callback1.assertRejected(expected1);
+    callback2.assertRejected(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateAlreadyRejectedChained() {
+    Throwable expected1 = new ClassCastException("foo");
+    P promise1 = createRejectedPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback();
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    reject(promise1, expected1);
+
+    promise1.then(callback1).then(callback2);
+
+    callback1.assertRejected(expected1);
+    callback2.assertRejected(expected1);
+  }
+
+  @Test
+  public void testChainingImmediateAlreadyRejectedFulfilled() {
+    Throwable expected1 = new ClassCastException("foo");
+    final Object expected2 = new Object();
+    P promise1 = createRejectedPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      @Override
+      protected Object doOnRejected(Throwable reason) throws Throwable {
+        return expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    reject(promise1, expected1);
+
+    promise1.then(callback1).then(callback2);
+
+    callback1.assertRejected(expected1);
+    callback2.assertFulfilled(expected2);
+  }
+
+  @Test
+  public void testChainingImmediateAlreadyFulfilledRejected() {
+    Object expected1 = new Object();
+    final Throwable expected2 = new ClassCastException("foo");
+    P promise1 = createFulfilledPromise(expected1);
+    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+      @Override
+      protected Object doOnFulfilled(Object value) throws Throwable {
+        throw expected2;
+      }
+    };
+    TestLeafCallback callback2 = new TestLeafCallback();
+
+    fulfill(promise1, expected1);
+
     promise1.then(callback1).then(callback2);
 
     callback1.assertFulfilled(expected1);

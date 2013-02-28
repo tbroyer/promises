@@ -1,4 +1,4 @@
-Promises for Java
+Promises for Java [![Build Status](https://travis-ci.org/tbroyer/promises.png?branch=master)](https://travis-ci.org/tbroyer/promises)
 =================
 
 Promises for Java is a simple implementation of promises, based on the

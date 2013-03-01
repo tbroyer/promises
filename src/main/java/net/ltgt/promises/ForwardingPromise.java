@@ -10,6 +10,11 @@ public abstract class ForwardingPromise<V> implements Promise<V> {
   }
 
   @Override
+  public <R> Promise<R> then(ChainingImmediateCallback<? super V, R> callback) {
+    return getDelegate().then(callback);
+  }
+
+  @Override
   public void then(LeafCallback<? super V> callback) {
     getDelegate().then(callback);
   }

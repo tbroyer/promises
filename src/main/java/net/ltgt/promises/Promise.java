@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
  */
 public interface Promise<V> {
 
-  abstract class ChainingCallback<V, R> {
+  abstract class Callback<V, R> {
     public abstract Promise<R> onFulfilled(@Nullable V value);
 
     public Promise<R> onRejected(Throwable reason) {
@@ -31,7 +31,7 @@ public interface Promise<V> {
     }
   }
 
-  abstract class ChainingImmediateCallback<V, R> {
+  abstract class ImmediateCallback<V, R> {
     public abstract R onFulfilled(@Nullable V value) throws Throwable;
 
     public R onRejected(Throwable reason) throws Throwable {
@@ -39,7 +39,7 @@ public interface Promise<V> {
     }
   }
 
-  abstract class LeafCallback<V> {
+  abstract class DoneCallback<V> {
     public abstract void onFulfilled(@Nullable V value);
 
     public void onRejected(Throwable reason) {
@@ -53,9 +53,9 @@ public interface Promise<V> {
     }
   }
 
-  <R> Promise<R> then(ChainingCallback<? super V, R> callback);
+  <R> Promise<R> then(Callback<? super V, R> callback);
 
-  <R> Promise<R> then(ChainingImmediateCallback<? super V, R> callback);
+  <R> Promise<R> then(ImmediateCallback<? super V, R> callback);
 
-  void then(LeafCallback<? super V> callback);
+  void done(DoneCallback<? super V> callback);
 }

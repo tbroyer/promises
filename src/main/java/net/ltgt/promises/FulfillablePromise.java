@@ -60,7 +60,7 @@ public class FulfillablePromise<V> implements Promise<V> {
   }
 
   @Override
-  public synchronized <R> Promise<R> then(final ChainingCallback<? super V, R> callback) {
+  public synchronized <R> Promise<R> then(final Callback<? super V, R> callback) {
     switch (state) {
     case FULFILLED:
       try {
@@ -98,7 +98,7 @@ public class FulfillablePromise<V> implements Promise<V> {
         }
 
         private void chain(Promise<R> promise, final FulfillablePromise<R> into) {
-          promise.then(new LeafCallback<R>() {
+          promise.done(new DoneCallback<R>() {
             @Override
             public void onFulfilled(R value) {
               into.fulfill(value);
@@ -116,7 +116,7 @@ public class FulfillablePromise<V> implements Promise<V> {
   }
 
   @Override
-  public <R> Promise<R> then(final ChainingImmediateCallback<? super V, R> callback) {
+  public <R> Promise<R> then(final ImmediateCallback<? super V, R> callback) {
     switch (state) {
     case FULFILLED:
       try {
@@ -158,7 +158,7 @@ public class FulfillablePromise<V> implements Promise<V> {
   }
 
   @Override
-  public synchronized void then(final LeafCallback<? super V> callback) {
+  public synchronized void done(final DoneCallback<? super V> callback) {
     switch (state) {
     case FULFILLED:
       callback.onFulfilled(value);

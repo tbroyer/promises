@@ -5,9 +5,9 @@ import java.util.Objects;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.container.AsyncResponse;
 
-import net.ltgt.promises.Promise.LeafCallback;
+import net.ltgt.promises.Promise.DoneCallback;
 
-public final class AsyncResponseCallback extends LeafCallback<Object> {
+public final class AsyncResponseCallback extends DoneCallback<Object> {
 
   public static AsyncResponseCallback create(AsyncResponse response) {
     return new AsyncResponseCallback(response);

@@ -33,7 +33,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
       return (FuturePromise<V>) promise;
     }
     final SettableFuture<V> future = SettableFuture.create();
-    promise.then(new LeafCallback<V>() {
+    promise.done(new DoneCallback<V>() {
       @Override
       public void onFulfilled(V value) {
         future.set(value);
@@ -53,7 +53,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
   }
 
   @Override
-  public <R> FuturePromise<R> then(final ChainingCallback<? super V, R> callback) {
+  public <R> FuturePromise<R> then(final Callback<? super V, R> callback) {
     final SettableFuture<R> ret = SettableFuture.create();
     then(new FutureCallback<V>() {
       @Override
@@ -78,7 +78,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
         if (into == null) {
           return;
         }
-        promise.then(new LeafCallback<R>() {
+        promise.done(new DoneCallback<R>() {
           @Override
           public void onFulfilled(R value) {
             into.set(value);
@@ -95,7 +95,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
   }
 
   @Override
-  public <R> FuturePromise<R> then(final ChainingImmediateCallback<? super V, R> callback) {
+  public <R> FuturePromise<R> then(final ImmediateCallback<? super V, R> callback) {
     final SettableFuture<R> ret = SettableFuture.create();
     then(new FutureCallback<V>() {
       @Override
@@ -120,7 +120,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
   }
 
   @Override
-  public void then(final LeafCallback<? super V> callback) {
+  public void done(final DoneCallback<? super V> callback) {
     then(new FutureCallback<V>() {
       @Override
       public void onSuccess(V result) {
@@ -139,7 +139,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
   }
 
   public <R> FuturePromise<R> then(final Function<? super V, Promise<R>> fulfilled) {
-    return then(new ChainingCallback<V, R>() {
+    return then(new Callback<V, R>() {
       @Override
       public Promise<R> onFulfilled(V value) {
         return fulfilled.apply(value);
@@ -153,7 +153,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
 
   public <R> FuturePromise<R> then(final AsyncFunction<? super V, R> fulfilled,
       final AsyncFunction<Throwable, R> rejected) {
-    return then(new ChainingCallback<V, R>() {
+    return then(new Callback<V, R>() {
       @Override
       public Promise<R> onFulfilled(V value) {
         try {
@@ -175,7 +175,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
 
   public <R> FuturePromise<R> then(final Function<? super V, Promise<R>> fulfilled,
       final Function<Throwable, Promise<R>> rejected) {
-    return then(new ChainingCallback<V, R>() {
+    return then(new Callback<V, R>() {
       @Override
       public Promise<R> onFulfilled(V value) {
         return fulfilled.apply(value);
@@ -188,7 +188,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
   }
 
   public void then(final VoidFunction<? super V> fulfilled, final VoidFunction<Throwable> rejected) {
-    then(new LeafCallback<V>() {
+    done(new DoneCallback<V>() {
       @Override
       public void onFulfilled(V value) {
         fulfilled.apply(value);

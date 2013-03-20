@@ -7,14 +7,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import net.ltgt.promises.Promise.LeafCallback;
+import net.ltgt.promises.Promise.DoneCallback;
 
 public final class Promises {
 
   public static <V> Promise<V> fulfilled(final V value) {
     return new Promise<V>() {
       @Override
-      public <R> Promise<R> then(ChainingCallback<? super V, R> callback) {
+      public <R> Promise<R> then(Callback<? super V, R> callback) {
         try {
           return callback.onFulfilled(value);
         } catch (Throwable t) {
@@ -22,7 +22,7 @@ public final class Promises {
         }
       }
       @Override
-      public <R> Promise<R> then(ChainingImmediateCallback<? super V, R> callback) {
+      public <R> Promise<R> then(ImmediateCallback<? super V, R> callback) {
         try {
           return fulfilled(callback.onFulfilled(value));
         } catch (Throwable t) {
@@ -30,7 +30,7 @@ public final class Promises {
         }
       }
       @Override
-      public void then(LeafCallback<? super V> callback) {
+      public void done(DoneCallback<? super V> callback) {
         callback.onFulfilled(value);
       }
     };
@@ -39,7 +39,7 @@ public final class Promises {
   public static <V> Promise<V> rejected(final Throwable reason) {
     return new Promise<V>() {
       @Override
-      public <R> Promise<R> then(ChainingCallback<? super V, R> callback) {
+      public <R> Promise<R> then(Callback<? super V, R> callback) {
         try {
           return callback.onRejected(reason);
         } catch (Throwable t) {
@@ -47,7 +47,7 @@ public final class Promises {
         }
       }
       @Override
-      public <R> Promise<R> then(ChainingImmediateCallback<? super V, R> callback) {
+      public <R> Promise<R> then(ImmediateCallback<? super V, R> callback) {
         try {
           return fulfilled(callback.onRejected(reason));
         } catch (Throwable t) {
@@ -55,7 +55,7 @@ public final class Promises {
         }
       }
       @Override
-      public void then(LeafCallback<? super V> callback) {
+      public void done(DoneCallback<? super V> callback) {
         callback.onRejected(reason);
       }
     };
@@ -84,7 +84,7 @@ public final class Promises {
     int i = 0;
     for (Promise<? extends V> promise : promises) {
       final int pos = i++;
-      promise.then(new LeafCallback<V>() {
+      promise.done(new DoneCallback<V>() {
         @Override
         public void onFulfilled(V value) {
           if (completed.get()) {

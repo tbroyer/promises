@@ -5,16 +5,16 @@ import static org.fest.assertions.api.Assertions.*;
 import javax.annotation.Nullable;
 
 import net.ltgt.promises.Promise;
-import net.ltgt.promises.Promise.ChainingCallback;
-import net.ltgt.promises.Promise.ChainingImmediateCallback;
-import net.ltgt.promises.Promise.LeafCallback;
+import net.ltgt.promises.Promise.Callback;
+import net.ltgt.promises.Promise.DoneCallback;
+import net.ltgt.promises.Promise.ImmediateCallback;
 
 import org.junit.Test;
 
 
 public abstract class PromiseTestBase<P extends Promise<Object>> {
 
-  static class TestChainingCallback extends ChainingCallback<Object, Object> {
+  static class TestCallback extends Callback<Object, Object> {
     private final Promise<Object> onFulfilled;
     private final Promise<Object> onRejected;
 
@@ -22,11 +22,11 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     private Object actualValue;
     private Throwable actualReason;
   
-    public TestChainingCallback(Promise<Object> onFulfilled) {
+    public TestCallback(Promise<Object> onFulfilled) {
       this(onFulfilled, null);
     }
 
-    public TestChainingCallback(Promise<Object> onFulfilled, @Nullable Promise<Object> onRejected) {
+    public TestCallback(Promise<Object> onFulfilled, @Nullable Promise<Object> onRejected) {
       this.onFulfilled = onFulfilled;
       this.onRejected = onRejected;
     }
@@ -63,7 +63,7 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     }
   }
 
-  static class TestChainingImmediateCallback extends ChainingImmediateCallback<Object, Object> {
+  static class TestImmediateCallback extends ImmediateCallback<Object, Object> {
     private boolean actualValueSet;
     private Object actualValue;
     private Throwable actualReason;
@@ -109,7 +109,7 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     }
   }
 
-  static class TestLeafCallback extends LeafCallback<Object> {
+  static class TestDoneCallback extends DoneCallback<Object> {
     private boolean actualValueSet;
     private Object actualValue;
     private Throwable actualReason;
@@ -161,27 +161,27 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   protected abstract void reject(P promise, Throwable reason);
 
   /** This is a hook for PrefilledPromiseTest. */
-  void assertPending(TestChainingCallback callback) {
+  void assertPending(TestCallback callback) {
     callback.assertPending();
   }
 
   /** This is a hook for PrefilledPromiseTest. */
-  void assertPending(TestChainingImmediateCallback callback) {
+  void assertPending(TestImmediateCallback callback) {
     callback.assertPending();
   }
 
   /** This is a hook for PrefilledPromiseTest. */
-  void assertPending(TestLeafCallback callback) {
+  void assertPending(TestDoneCallback callback) {
     callback.assertPending();
   }
 
   @Test
   public void testOnFulfilled() {
     Object expected = new Object();
-    TestLeafCallback callback = new TestLeafCallback();
+    TestDoneCallback callback = new TestDoneCallback();
     P promise = createFulfilledPromise(expected);
   
-    promise.then(callback);
+    promise.done(callback);
     assertPending(callback);
   
     fulfill(promise, expected);
@@ -190,10 +190,10 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
 
   @Test
   public void testOnFulfilledWithNull() {
-    TestLeafCallback callback = new TestLeafCallback();
+    TestDoneCallback callback = new TestDoneCallback();
     P promise = createFulfilledPromise(null);
   
-    promise.then(callback);
+    promise.done(callback);
     assertPending(callback);
   
     fulfill(promise, null);
@@ -203,10 +203,10 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   @Test
   public void testOnRejected() {
     Throwable expected = new ClassCastException("foo");
-    TestLeafCallback callback = new TestLeafCallback();
+    TestDoneCallback callback = new TestDoneCallback();
     P promise = createRejectedPromise(expected);
   
-    promise.then(callback);
+    promise.done(callback);
     assertPending(callback);
   
     reject(promise, expected);
@@ -216,34 +216,34 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   @Test
   public void testOnAlreadyFulfilled() {
     Object expected = new Object();
-    TestLeafCallback callback = new TestLeafCallback();
+    TestDoneCallback callback = new TestDoneCallback();
     P promise = createFulfilledPromise(expected);
     fulfill(promise, expected);
   
-    promise.then(callback);
+    promise.done(callback);
   
     callback.assertFulfilled(expected);
   }
 
   @Test
   public void testOnAlreadyFulfilledWithNull() {
-    TestLeafCallback callback = new TestLeafCallback();
+    TestDoneCallback callback = new TestDoneCallback();
     P promise = createFulfilledPromise(null);
     fulfill(promise, null);
   
-    promise.then(callback);
+    promise.done(callback);
   
     callback.assertFulfilled(null);
   }
 
   @Test
   public void testOnAlreadyRejected() {
-    Throwable expected = new ClassCastException("foo");
-    TestLeafCallback callback = new TestLeafCallback();
+    Exception expected = new ClassCastException("foo");
+    TestDoneCallback callback = new TestDoneCallback();
     P promise = createRejectedPromise(expected);
     reject(promise, expected);
   
-    promise.then(callback);
+    promise.done(callback);
   
     callback.assertRejected(expected);
   }
@@ -254,10 +254,10 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected2 = new Object();
     P promise1 = createFulfilledPromise(expected1);
     P promise2 = createFulfilledPromise(expected2);
-    TestChainingCallback callback1 = new TestChainingCallback(promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestCallback callback1 = new TestCallback(promise2);
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -275,11 +275,11 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected2 = new IllegalArgumentException("bar");
     P promise1 = createRejectedPromise(expected1);
     P promise2 = createRejectedPromise(expected2);
-    TestChainingCallback callback1 =
-        new TestChainingCallback(createFulfilledPromise(new Object()), promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestCallback callback1 =
+        new TestCallback(createFulfilledPromise(new Object()), promise2);
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -297,11 +297,11 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected2 = new Object();
     P promise1 = createRejectedPromise(expected1);
     P promise2 = createFulfilledPromise(expected2);
-    TestChainingCallback callback1 = new TestChainingCallback(
+    TestCallback callback1 = new TestCallback(
         createRejectedPromise(new IllegalArgumentException("bar")), promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -319,10 +319,10 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected2 = new ClassCastException("foo");
     P promise1 = createFulfilledPromise(expected1);
     P promise2 = createRejectedPromise(expected2);
-    TestChainingCallback callback1 = new TestChainingCallback(promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestCallback callback1 = new TestCallback(promise2);
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -340,13 +340,13 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected2 = new Object();
     P promise1 = createFulfilledPromise(expected1);
     P promise2 = createFulfilledPromise(expected2);
-    TestChainingCallback callback1 = new TestChainingCallback(promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestCallback callback1 = new TestCallback(promise2);
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     fulfill(promise1, expected1);
     fulfill(promise2, expected2);
     
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertFulfilled(expected1);
     callback2.assertFulfilled(expected2);
@@ -358,14 +358,14 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected2 = new IllegalArgumentException("bar");
     P promise1 = createRejectedPromise(expected1);
     P promise2 = createRejectedPromise(expected2);
-    TestChainingCallback callback1 =
-        new TestChainingCallback(createFulfilledPromise(new Object()), promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestCallback callback1 =
+        new TestCallback(createFulfilledPromise(new Object()), promise2);
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     reject(promise1, expected1);
     reject(promise2, expected2);
     
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertRejected(expected1);
     callback2.assertRejected(expected2);
@@ -377,14 +377,14 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected2 = new Object();
     P promise1 = createRejectedPromise(expected1);
     P promise2 = createFulfilledPromise(expected2);
-    TestChainingCallback callback1 = new TestChainingCallback(
+    TestCallback callback1 = new TestCallback(
         createRejectedPromise(new IllegalArgumentException("bar")), promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     reject(promise1, expected1);
     fulfill(promise2, expected2);
     
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertRejected(expected1);
     callback2.assertFulfilled(expected2);
@@ -396,13 +396,13 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected2 = new ClassCastException("foo");
     P promise1 = createFulfilledPromise(expected1);
     P promise2 = createRejectedPromise(expected2);
-    TestChainingCallback callback1 = new TestChainingCallback(promise2);
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestCallback callback1 = new TestCallback(promise2);
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     fulfill(promise1, expected1);
     reject(promise2, expected2);
     
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertFulfilled(expected1);
     callback2.assertRejected(expected2);
@@ -413,14 +413,14 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected1 = new Object();
     final Object expected2 = new Object();
     P promise1 = createFulfilledPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       protected Object doOnFulfilled(Object value) throws Throwable {
         return expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -434,15 +434,15 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected1 = new ClassCastException("foo");
     final Throwable expected2 = new IllegalArgumentException("bar");
     P promise1 = createRejectedPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       @Override
       protected Object doOnRejected(Throwable reason) throws Throwable {
         throw expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -455,10 +455,10 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   public void testChainingImmediateRejectedChained() {
     Throwable expected1 = new ClassCastException("foo");
     P promise1 = createRejectedPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback();
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestImmediateCallback callback1 = new TestImmediateCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -472,14 +472,14 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected1 = new ClassCastException("foo");
     final Object expected2 = new Object();
     P promise1 = createRejectedPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       protected Object doOnRejected(Throwable reason) throws Throwable {
         return expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -493,15 +493,15 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected1 = new Object();
     final Throwable expected2 = new ClassCastException("foo");
     P promise1 = createFulfilledPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       @Override
       protected Object doOnFulfilled(Object value) throws Throwable {
         throw expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
     assertPending(callback1);
     assertPending(callback2);
 
@@ -515,17 +515,17 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected1 = new Object();
     final Object expected2 = new Object();
     P promise1 = createFulfilledPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       @Override
       protected Object doOnFulfilled(Object value) throws Throwable {
         return expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     fulfill(promise1, expected1);
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertFulfilled(expected1);
     callback2.assertFulfilled(expected2);
@@ -536,17 +536,17 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected1 = new ClassCastException("foo");
     final Throwable expected2 = new IllegalArgumentException("bar");
     P promise1 = createRejectedPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       @Override
       protected Object doOnRejected(Throwable reason) throws Throwable {
         throw expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     reject(promise1, expected1);
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertRejected(expected1);
     callback2.assertRejected(expected2);
@@ -556,12 +556,12 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   public void testChainingImmediateAlreadyRejectedChained() {
     Throwable expected1 = new ClassCastException("foo");
     P promise1 = createRejectedPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback();
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestImmediateCallback callback1 = new TestImmediateCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     reject(promise1, expected1);
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertRejected(expected1);
     callback2.assertRejected(expected1);
@@ -572,17 +572,17 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Throwable expected1 = new ClassCastException("foo");
     final Object expected2 = new Object();
     P promise1 = createRejectedPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       @Override
       protected Object doOnRejected(Throwable reason) throws Throwable {
         return expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     reject(promise1, expected1);
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertRejected(expected1);
     callback2.assertFulfilled(expected2);
@@ -593,17 +593,17 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     Object expected1 = new Object();
     final Throwable expected2 = new ClassCastException("foo");
     P promise1 = createFulfilledPromise(expected1);
-    TestChainingImmediateCallback callback1 = new TestChainingImmediateCallback() {
+    TestImmediateCallback callback1 = new TestImmediateCallback() {
       @Override
       protected Object doOnFulfilled(Object value) throws Throwable {
         throw expected2;
       }
     };
-    TestLeafCallback callback2 = new TestLeafCallback();
+    TestDoneCallback callback2 = new TestDoneCallback();
 
     fulfill(promise1, expected1);
 
-    promise1.then(callback1).then(callback2);
+    promise1.then(callback1).done(callback2);
 
     callback1.assertFulfilled(expected1);
     callback2.assertRejected(expected2);
@@ -613,14 +613,14 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   public void testManyCallbacksFulfilled() {
     Object expected = new Object();
     P promise = createFulfilledPromise(expected);
-    TestLeafCallback before = new TestLeafCallback();
-    TestLeafCallback after1 = new TestLeafCallback();
-    TestLeafCallback after2 = new TestLeafCallback();
+    TestDoneCallback before = new TestDoneCallback();
+    TestDoneCallback after1 = new TestDoneCallback();
+    TestDoneCallback after2 = new TestDoneCallback();
 
-    promise.then(before);
+    promise.done(before);
     fulfill(promise, expected);
-    promise.then(after1);
-    promise.then(after2);
+    promise.done(after1);
+    promise.done(after2);
 
     before.assertFulfilled(expected);
     after1.assertFulfilled(expected);
@@ -631,14 +631,14 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   public void testManyCallbacksRejected() {
     Throwable expected = new ClassCastException("foo");
     P promise = createRejectedPromise(expected);
-    TestLeafCallback before = new TestLeafCallback();
-    TestLeafCallback after1 = new TestLeafCallback();
-    TestLeafCallback after2 = new TestLeafCallback();
+    TestDoneCallback before = new TestDoneCallback();
+    TestDoneCallback after1 = new TestDoneCallback();
+    TestDoneCallback after2 = new TestDoneCallback();
 
-    promise.then(before);
+    promise.done(before);
     reject(promise, expected);
-    promise.then(after1);
-    promise.then(after2);
+    promise.done(after1);
+    promise.done(after2);
 
     before.assertRejected(expected);
     after1.assertRejected(expected);

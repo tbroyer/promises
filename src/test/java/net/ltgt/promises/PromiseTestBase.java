@@ -4,7 +4,6 @@ import static org.fest.assertions.api.Assertions.*;
 
 import javax.annotation.Nullable;
 
-import net.ltgt.promises.Promise;
 import net.ltgt.promises.Promise.Callback;
 import net.ltgt.promises.Promise.DoneCallback;
 import net.ltgt.promises.Promise.ImmediateCallback;

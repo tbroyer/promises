@@ -1,12 +1,11 @@
 package net.ltgt.promises;
 
-import static org.fest.assertions.api.Assertions.*;
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.fest.assertions.api.Assertions.failBecauseExceptionWasNotThrown;
 
 import java.util.concurrent.ExecutionException;
 
 import org.junit.Test;
-
-import net.ltgt.promises.FuturePromise;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;

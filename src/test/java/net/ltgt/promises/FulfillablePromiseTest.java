@@ -2,8 +2,6 @@ package net.ltgt.promises;
 
 import javax.annotation.Nullable;
 
-import net.ltgt.promises.FulfillablePromise;
-
 public class FulfillablePromiseTest extends PromiseTestBase<FulfillablePromise<Object>> {
 
   @Override

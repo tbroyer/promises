@@ -2,9 +2,6 @@ package net.ltgt.promises;
 
 import javax.annotation.Nullable;
 
-import net.ltgt.promises.Promise;
-import net.ltgt.promises.Promises;
-
 public class PrefilledPromiseTest extends PromiseTestBase<Promise<Object>> {
 
   @Override

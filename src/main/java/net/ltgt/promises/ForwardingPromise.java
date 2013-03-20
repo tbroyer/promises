@@ -18,4 +18,9 @@ public abstract class ForwardingPromise<V> implements Promise<V> {
   public void done(DoneCallback<? super V> callback) {
     getDelegate().done(callback);
   }
+
+  @Override
+  public void done() {
+    getDelegate().done();
+  }
 }

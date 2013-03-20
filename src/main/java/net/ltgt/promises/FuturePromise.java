@@ -1,5 +1,6 @@
 package net.ltgt.promises;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
@@ -134,6 +135,33 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
     });
   }
 
+  @Override
+  public void done() {
+    if (future.isDone()) {
+      try {
+        future.get();
+        return;
+      } catch (ExecutionException ee) {
+        throw Promises.propagate(ee.getCause());
+      } catch (Throwable t) {
+        // This shouldn't ever happen, but just in case:
+        throw Promises.propagate(t);
+      }
+    }
+
+    then(new FutureCallback<V>() {
+      @Override
+      public void onSuccess(V result) {
+        // no-op
+      }
+
+      @Override
+      public void onFailure(Throwable t) {
+        throw Promises.propagate(t);
+      }
+    });
+  }
+
   public void then(FutureCallback<? super V> callback) {
     Futures.addCallback(future, callback);
   }
@@ -187,7 +215,7 @@ public class FuturePromise<V> extends ForwardingListenableFuture<V> implements P
     });
   }
 
-  public void then(final VoidFunction<? super V> fulfilled, final VoidFunction<Throwable> rejected) {
+  public void done(final VoidFunction<? super V> fulfilled, final VoidFunction<Throwable> rejected) {
     done(new DoneCallback<V>() {
       @Override
       public void onFulfilled(V value) {

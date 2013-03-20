@@ -183,6 +183,9 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   
     promise.done(callback);
     assertPending(callback);
+
+    // we expect this to be a no-op
+    promise.done();
   
     fulfill(promise, expected);
     callback.assertFulfilled(expected);
@@ -195,6 +198,9 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
   
     promise.done(callback);
     assertPending(callback);
+
+    // we expect this to be a no-op
+    promise.done();
   
     fulfill(promise, null);
     callback.assertFulfilled(null);
@@ -223,6 +229,9 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     promise.done(callback);
   
     callback.assertFulfilled(expected);
+
+    // we expect this to be a no-op
+    promise.done();
   }
 
   @Test
@@ -234,6 +243,9 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     promise.done(callback);
   
     callback.assertFulfilled(null);
+
+    // we expect this to be a no-op
+    promise.done();
   }
 
   @Test
@@ -246,6 +258,14 @@ public abstract class PromiseTestBase<P extends Promise<Object>> {
     promise.done(callback);
   
     callback.assertRejected(expected);
+
+    try {
+      promise.done();
+      failBecauseExceptionWasNotThrown(expected.getClass());
+    } catch (Throwable t) {
+      // Should be the same, as it's a RuntimeException.
+      assertThat(t).isSameAs(expected);
+    }
   }
 
   @Test

@@ -43,13 +43,7 @@ public interface Promise<V> {
     public abstract void onFulfilled(@Nullable V value);
 
     public void onRejected(Throwable reason) {
-      if (reason instanceof RuntimeException) {
-        throw (RuntimeException) reason;
-      }
-      if (reason instanceof Error) {
-        throw (Error) reason;
-      }
-      throw new RuntimeException(reason);
+      Promises.propagate(reason);
     }
   }
 
@@ -58,4 +52,6 @@ public interface Promise<V> {
   <R> Promise<R> then(ImmediateCallback<? super V, R> callback);
 
   void done(DoneCallback<? super V> callback);
+
+  void done();
 }

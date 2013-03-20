@@ -7,9 +7,24 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import net.ltgt.promises.Promise.DoneCallback;
 
 public final class Promises {
+
+  /**
+   * This is the same as Guava's Throwables#propagate, but we don't want a
+   * mandatory dependency on Guava.
+   */
+  static RuntimeException propagate(Throwable t) {
+    if (t instanceof RuntimeException) {
+      throw (RuntimeException) t;
+    }
+    if (t instanceof Error) {
+      throw (Error) t;
+    }
+    throw new RuntimeException(t);
+  }
 
   public static <V> Promise<V> fulfilled(final V value) {
     return new Promise<V>() {
@@ -32,6 +47,10 @@ public final class Promises {
       @Override
       public void done(DoneCallback<? super V> callback) {
         callback.onFulfilled(value);
+      }
+      @Override
+      public void done() {
+        // no-op
       }
     };
   }
@@ -57,6 +76,10 @@ public final class Promises {
       @Override
       public void done(DoneCallback<? super V> callback) {
         callback.onRejected(reason);
+      }
+      @Override
+      public void done() {
+        throw propagate(reason);
       }
     };
   }

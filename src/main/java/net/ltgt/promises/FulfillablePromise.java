@@ -183,6 +183,29 @@ public class FulfillablePromise<V> implements Promise<V> {
     }
   }
 
+  @Override
+  public void done() {
+    switch (state) {
+    case FULFILLED:
+      // no-op
+      break;
+    case REJECTED:
+      throw Promises.propagate(reason);
+    case PENDING:
+      addHandler(new Handler<V>() {
+        @Override
+        void fulfill(V value) {
+          // no-op
+        }
+
+        @Override
+        void reject(Throwable reason) {
+          Promises.propagate(reason);
+        }
+      });
+    }
+  }
+
   private void addHandler(Handler<V> handler) {
     if (last == null) {
       first = last = handler;

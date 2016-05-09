@@ -1,3 +1,6 @@
+_THIS PROJECT IS DEPRECATED!_
+=============================
+
 Promises for Java [![Build Status](https://travis-ci.org/tbroyer/promises.png?branch=master)](https://travis-ci.org/tbroyer/promises)
 =================
 
